@@ -4,20 +4,21 @@ import os
 import cv2
 import numpy as np
 
-def create_input_image_embeddings():
+def create_input_image_embeddings(email, images):
     input_embeddings = {}
     inception_model = model.create_model()
-    for file in glob.glob("images/*"):
-        person_name = os.path.splitext(os.path.basename(file))[0]
-        image_file = cv2.imread(file, 1)
-        input_embeddings[person_name] = image_to_embedding(image_file, inception_model)
+    base_path = 'images/' + email
+    for image in images:
+        filename = os.path.join(base_path, image)
+        image_file = cv2.imread(filename, 1)
+        input_embeddings[filename] = image_to_embedding(image_file, inception_model)
 
     return input_embeddings, inception_model
 
 
 def image_to_embedding(image, model):
-    #image = cv2.resize(image, (96, 96), interpolation=cv2.INTER_AREA) 
-    image = cv2.resize(image, (96, 96)) 
+    image = cv2.resize(image, (96, 96), interpolation=cv2.INTER_AREA) 
+    #image = cv2.resize(image, (96, 96)) 
     img = image[...,::-1]
     img = np.around(np.transpose(img, (0,1,2))/255.0, decimals=12)
     x_train = np.array([img])
