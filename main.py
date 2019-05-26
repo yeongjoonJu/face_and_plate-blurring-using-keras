@@ -2,7 +2,6 @@ import cv2
 import os
 from PIL import Image
 import argparse
-from timeit import default_timer as timer
 from face_recognition.recognition import create_input_image_embeddings, detect_face
 from face_recognition.model import create_model
 from detection_model import Yolo_Ensemble
@@ -10,9 +9,9 @@ from detection_model import Yolo_Ensemble
 def mask_rectangle(img, rect):
     (x1, y1, x2, y2) = rect
     
-    cv2.rectangle(img, (x1, y1), (x2, y2), (200, 0, 0), 1)
+    cv2.rectangle(img, (x1, y1), (x2, y2), (200, 0, 0), -1)
     dst = img[y1:y2, x1:x2]
-    dst = cv2.medianBlur(dst, 19)
+    dst = cv2.GaussianBlur(dst, (23,23), 30)
     img[y1:y2, x1:x2]= dst
 
 
@@ -45,8 +44,7 @@ if __name__ == '__main__':
     #cv2.imshow('frame', predicted)
     
     detect_model = Yolo_Ensemble()
-    detect_model.load_model('model_data/yolo_face_model.h5', 'model_data/tiny_yolo_face_model.h5',
-                            'model_data/yolo_plate_model.h5')
+    detect_model.load_model('model_data/yolo_face_model.h5', 'model_data/yolo_plate_model.h5')
     
     vid = cv2.VideoCapture(args.input)
     if not vid.isOpened():
@@ -56,26 +54,15 @@ if __name__ == '__main__':
     video_size      = (int(vid.get(cv2.CAP_PROP_FRAME_WIDTH)),
                         int(vid.get(cv2.CAP_PROP_FRAME_HEIGHT)))
 
-    accum_time = 0
-    curr_fps = 0
-    fps = "FPS: ??"
-    prev_time = timer()
     while True:
         return_value, frame = vid.read()
         image = Image.fromarray(frame)
-        boxes = detect_model.detect(image)
-        for box in boxes:
+        face_boxes, plate_boxes = detect_model.detect(image)
+        for box in face_boxes:
             mask_rectangle(frame, box)
-        
-        curr_time = timer()
-        exec_time = curr_time - prev_time
-        prev_time = curr_time
-        accum_time = accum_time + exec_time
-        curr_fps = curr_fps + 1
-        if accum_time > 1:
-            accum_time = accum_time - 1
-            fps = "FPS: " + str(curr_fps)
-            curr_fps = 0
+              
+        for box in plate_boxes:
+            mask_rectangle(frame, box)
 
         cv2.namedWindow("result", cv2.WINDOW_NORMAL)
         cv2.imshow("result", frame)
