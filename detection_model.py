@@ -48,8 +48,8 @@ class Yolo_Ensemble(object):
 
 
     def detect(self, frame):
-        face_boxes = []
-        plate_boxes = []
+        faces = []
+        plates = []
         if self.model_image_size != (None, None):
             assert self.model_image_size[0]%32 == 0, 'Multiples of 32 required'
             assert self.model_image_size[1]%32 == 0, 'Multiples of 32 required'
@@ -86,7 +86,7 @@ class Yolo_Ensemble(object):
             x1 = max(0, np.floor(x1 + 2.5).astype('int32'))
             y2 = min(frame.size[1], np.floor(y2 + 2.5).astype('int32'))
             x2 = min(frame.size[0], np.floor(x2 + 2.5).astype('int32'))
-            face_boxes.append((x1, y1, x2, y2))
+            faces.append((x1, y1, x2, y2))
 
         # plate detection
         for i, score in enumerate(plate_scores):
@@ -96,9 +96,9 @@ class Yolo_Ensemble(object):
             x1 = max(0, np.floor(x1 + 2.5).astype('int32'))
             y2 = min(frame.size[1], np.floor(y2 + 2.5).astype('int32'))
             x2 = min(frame.size[0], np.floor(x2 + 2.5).astype('int32'))
-            plate_boxes.append((x1, y1, x2, y2))
+            plates.append((x1, y1, x2, y2))
        
-        return face_boxes, plate_boxes
+        return faces, plates
 
 
     def close_session(self):

@@ -2,16 +2,16 @@ import cv2
 import os
 from PIL import Image
 import argparse
-from face_recognition.recognition import create_input_image_embeddings, detect_face
-from face_recognition.model import create_model
+
 from detection_model import Yolo_Ensemble
+from face_recognize import Face_Recognition
 
 def mask_rectangle(img, rect):
     (x1, y1, x2, y2) = rect
     
-    cv2.rectangle(img, (x1, y1), (x2, y2), (200, 0, 0), -1)
+    cv2.rectangle(img, (x1, y1), (x2, y2), (200, 200, 200), 0)
     dst = img[y1:y2, x1:x2]
-    dst = cv2.GaussianBlur(dst, (23,23), 30)
+    dst = cv2.GaussianBlur(dst, (99,99), 30)
     img[y1:y2, x1:x2]= dst
 
 
@@ -21,7 +21,7 @@ if __name__ == '__main__':
     Command line arguments -- for video detection mode
     '''
     parser.add_argument(
-        "--input", nargs='?', type=str, required=True, default='./path2your_video',
+        "--input", nargs='?', type=str, required=False, default='./path2your_video',
         help = "Video input path"
     )
     parser.add_argument(
@@ -30,23 +30,22 @@ if __name__ == '__main__':
     )
     parser.add_argument(
         "--email", nargs='?', type=str, default="",
-        help = "[Optional] user email"
-    )    
+        help = "user email"
+    )
 
     args = parser.parse_args()
-    user_email = 'go1217jo@naver.com'
-    face_images = ['yeongjoon1.jpg']
     
-    #input_embeddings, inception = create_input_image_embeddings(user_email, face_images)
-    #face_cascade = cv2.CascadeClassifier('haarcascade_frontalface_default.xml')
+    use_recognition = True
+    if args.email == "":
+        use_recognition = False
 
-    #predicted = detect_face(img, input_embeddings, inception, face_cascade)
-    #cv2.imshow('frame', predicted)
-    
+    # load model
+    if use_recognition:
+        face_recog_model = Face_Recognition(args.email)    
     detect_model = Yolo_Ensemble()
     detect_model.load_model('model_data/yolo_face_model.h5', 'model_data/yolo_plate_model.h5')
     
-    vid = cv2.VideoCapture(args.input)
+    vid = cv2.VideoCapture(0)
     if not vid.isOpened():
         raise IOError("Couldn't open webcam or video")
     video_FourCC    = int(vid.get(cv2.CAP_PROP_FOURCC))
@@ -58,10 +57,14 @@ if __name__ == '__main__':
         return_value, frame = vid.read()
         image = Image.fromarray(frame)
         face_boxes, plate_boxes = detect_model.detect(image)
-        for box in face_boxes:
-            mask_rectangle(frame, box)
-              
-        for box in plate_boxes:
+        
+        # recognize faces
+        if use_recognition:
+            face_boxes = face_recog_model.recognize(frame, face_boxes)
+
+        predicted = face_boxes + plate_boxes
+
+        for box in predicted:
             mask_rectangle(frame, box)
 
         cv2.namedWindow("result", cv2.WINDOW_NORMAL)
